@@ -1,0 +1,96 @@
+//--------------------------------
+// 📊 Engagement Metrics
+//--------------------------------
+Average Rating = AVERAGE ( 'Merged'[Rating] )
+Total Plays = SUM ( 'Merged'[Plays] )
+Total Wishlist = SUM ( 'Merged'[Wishlist] )
+Total Backlogs = SUM ( 'Merged'[Backlogs] )
+
+Engagement Score =
+DIVIDE (
+    SUM ( 'Merged'[Plays] ) + SUM ( 'Merged'[Wishlist] ) + SUM ( 'Merged'[Backlogs] ),
+    COUNTROWS ( 'Merged' )
+)
+
+Backlog to Wishlist % =
+DIVIDE ( SUM ( 'Merged'[Backlogs] ), SUM ( 'Merged'[Wishlist] ) )
+
+//--------------------------------
+// 💰 Sales Metrics
+//--------------------------------
+Total Global Sales = SUM ( 'Merged'[Global_Sales] )
+Total NA Sales = SUM ( 'Merged'[NA_Sales] )
+Total EU Sales = SUM ( 'Merged'[EU_Sales] )
+Total JP Sales = SUM ( 'Merged'[JP_Sales] )
+Total Other Sales = SUM ( 'Merged'[Other_Sales] )
+
+Average Sales per Publisher =
+DIVIDE ( [Total Global Sales], DISTINCTCOUNT ( 'Merged'[Publisher_final] ) )
+
+//--------------------------------
+// 📈 Time Intelligence
+//--------------------------------
+// Create a Calendar table before using these:
+// Calendar = CALENDAR ( DATE ( MIN ( 'Merged'[Year_final] ),1,1), DATE ( MAX ( 'Merged'[Year_final] ),12,31) )
+// Relate Calendar[Year] -> Merged[Year_final]
+
+YoY Global Sales % =
+VAR PrevYear =
+    CALCULATE ( [Total Global Sales], DATEADD ( 'Calendar'[Date], -1, YEAR ) )
+RETURN
+    DIVIDE ( [Total Global Sales] - PrevYear, PrevYear )
+
+YoY Wishlist % =
+VAR PrevYear =
+    CALCULATE ( [Total Wishlist], DATEADD ( 'Calendar'[Date], -1, YEAR ) )
+RETURN
+    DIVIDE ( [Total Wishlist] - PrevYear, PrevYear )
+
+//--------------------------------
+// 🔁 Engagement + Sales (Merged Insights)
+//--------------------------------
+Wishlist to Sales Ratio =
+DIVIDE ( [Total Wishlist], [Total Global Sales] )
+
+Rating Weighted Sales =
+SUMX (
+    'Merged',
+    'Merged'[Rating] * 'Merged'[Global_Sales]
+)
+
+Avg Sales by Rating =
+DIVIDE ( [Rating Weighted Sales], SUM ( 'Merged'[Rating] ) )
+
+// Correlation proxy: High Rated Sales %
+High Rated Sales % =
+DIVIDE (
+    CALCULATE ( [Total Global Sales], 'Merged'[Rating] >= 4 ),
+    [Total Global Sales]
+)
+
+//--------------------------------
+// 🏆 Top N Helpers (for visuals)
+//--------------------------------
+Top 10 Games by Sales =
+TOPN (
+    10,
+    SUMMARIZE (
+        'Merged',
+        'Merged'[Title],
+        "GlobalSales", [Total Global Sales]
+    ),
+    [Total Global Sales],
+    DESC
+)
+
+Top 10 Games by Wishlist =
+TOPN (
+    10,
+    SUMMARIZE (
+        'Merged',
+        'Merged'[Title],
+        "Wishlists", [Total Wishlist]
+    ),
+    [Total Wishlist],
+    DESC
+)
